@@ -1,0 +1,75 @@
+---
+import type { GetStaticPaths } from "astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import ArtworkCard from "../components/ArtworkCard.astro";
+import { fetchArtworks } from "../data/fetch-artworks";
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const artworks = await fetchArtworks();
+  return paginate(artworks, { pageSize: 6 });
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props;
+const nextUrl = page.url.next;
+---
+
+<BaseLayout title="Creative Coding Gallery">
+  <Header />
+  <main class="container">
+    <section class="gallery">
+      <div class="gallery-grid" id="gallery-grid">
+        {page.data.map((artwork) => <ArtworkCard artwork={artwork} />)}
+      </div>
+      {nextUrl && <div id="scroll-sentinel" data-next={nextUrl}></div>}
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>
+
+<style>
+  .gallery {
+    padding: var(--space-3xl) 0;
+  }
+
+  #scroll-sentinel {
+    height: 1px;
+  }
+</style>
+
+<script>
+  const sentinel = document.getElementById("scroll-sentinel");
+  if (sentinel) {
+    const grid = document.getElementById("gallery-grid")!;
+    let nextUrl = sentinel.dataset.next!;
+    let loading = false;
+
+    const observer = new IntersectionObserver(
+      async (entries) => {
+        if (!entries[0].isIntersecting || loading || !nextUrl) return;
+        loading = true;
+
+        const res = await fetch(nextUrl);
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, "text/html");
+
+        const newCards = doc.querySelectorAll("#gallery-grid > *");
+        newCards.forEach((card) => grid.appendChild(document.adoptNode(card)));
+
+        const newSentinel = doc.getElementById("scroll-sentinel");
+        if (newSentinel?.dataset.next) {
+          nextUrl = newSentinel.dataset.next;
+        } else {
+          observer.disconnect();
+          sentinel.remove();
+        }
+
+        loading = false;
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(sentinel);
+  }
+</script>
