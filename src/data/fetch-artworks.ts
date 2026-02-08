@@ -38,9 +38,11 @@ export async function fetchArtworks(): Promise<Artwork[]> {
   const data = await response.json();
   const manifest = ManifestSchema.parse(data);
 
-  return manifest.artworks.map((artwork) => ({
-    ...artwork,
-    mediaUrl: rawUrl(artwork.media),
-    sourceUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/${BRANCH}/${artwork.slug}`,
-  }));
+  return manifest.artworks
+    .map((artwork) => ({
+      ...artwork,
+      mediaUrl: rawUrl(artwork.media),
+      sourceUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/${BRANCH}/${artwork.slug}`,
+    }))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
