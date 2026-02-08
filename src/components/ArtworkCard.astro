@@ -1,0 +1,42 @@
+---
+import type { Artwork } from "../data/fetch-artworks";
+
+interface Props {
+  artwork: Artwork;
+}
+
+const { artwork } = Astro.props;
+const detailUrl = `${import.meta.env.BASE_URL}${artwork.slug}/`;
+---
+
+<a href={detailUrl} class="card-link">
+  <article class="card">
+    <div class="card-media">
+      <img
+        src={artwork.mediaUrl}
+        alt={artwork.title}
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+    <div class="card-body">
+      <h2 class="card-title">{artwork.title}</h2>
+      <p class="card-description">{artwork.description}</p>
+      <div class="tags">
+        {artwork.tags.map((tag) => <span class="tag">{tag}</span>)}
+      </div>
+    </div>
+  </article>
+</a>
+
+<style>
+  .card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
+  .card-link:hover {
+    text-decoration: none;
+  }
+</style>

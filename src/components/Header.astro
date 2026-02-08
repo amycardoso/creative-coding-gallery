@@ -1,0 +1,43 @@
+---
+const base = import.meta.env.BASE_URL;
+---
+
+<header class="header">
+  <div class="container header-inner">
+    <a href={base} class="header-title">Creative Coding Gallery</a>
+    <span class="header-author">by <a href="https://github.com/amycardoso" rel="noopener noreferrer">Amélia Alice</a></span>
+  </div>
+</header>
+
+<style>
+  .header {
+    border-bottom: 1px solid var(--color-border);
+    padding: var(--space-lg) 0;
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .header-title {
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--color-text);
+    letter-spacing: -0.02em;
+  }
+
+  .header-title:hover {
+    text-decoration: none;
+    color: var(--color-accent);
+  }
+
+  .header-author {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+  }
+</style>

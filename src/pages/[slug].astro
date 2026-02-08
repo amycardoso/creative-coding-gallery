@@ -1,0 +1,77 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { fetchArtworks } from "../data/fetch-artworks";
+import type { Artwork } from "../data/fetch-artworks";
+
+export async function getStaticPaths() {
+  const artworks = await fetchArtworks();
+  return artworks.map((artwork) => ({
+    params: { slug: artwork.slug },
+    props: { artwork },
+  }));
+}
+
+interface Props {
+  artwork: Artwork;
+}
+
+const { artwork } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout
+  title={`${artwork.title} — Creative Coding Gallery`}
+  description={artwork.description}
+  ogImage={artwork.mediaUrl}
+>
+  <Header />
+  <main class="container">
+    <article class="detail">
+      <a href={base} class="back-link">&larr; Back to gallery</a>
+
+      <div class="detail-media">
+        <img
+          src={artwork.mediaUrl}
+          alt={artwork.title}
+          loading="eager"
+          decoding="async"
+        />
+      </div>
+
+      <h1 class="detail-title">{artwork.title}</h1>
+      <p class="detail-description">{artwork.description}</p>
+
+      <dl class="detail-meta">
+        <div>
+          <dt>Date</dt>
+          <dd>{new Date(artwork.date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</dd>
+        </div>
+        <div>
+          <dt>Tech Stack</dt>
+          <dd class="tags">
+            {artwork.tech.map((t) => <span class="tag">{t}</span>)}
+          </dd>
+        </div>
+        <div>
+          <dt>Tags</dt>
+          <dd class="tags">
+            {artwork.tags.map((tag) => <span class="tag">{tag}</span>)}
+          </dd>
+        </div>
+        <div>
+          <dt>Source</dt>
+          <dd><a href={artwork.sourceUrl} rel="noopener noreferrer">View on GitHub</a></dd>
+        </div>
+      </dl>
+    </article>
+  </main>
+  <Footer />
+</BaseLayout>
+
+<style>
+  .detail {
+    padding: var(--space-3xl) 0;
+  }
+</style>

@@ -1,0 +1,27 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import ArtworkCard from "../components/ArtworkCard.astro";
+import { fetchArtworks } from "../data/fetch-artworks";
+
+const artworks = await fetchArtworks();
+---
+
+<BaseLayout title="Creative Coding Gallery">
+  <Header />
+  <main class="container">
+    <section class="gallery">
+      <div class="gallery-grid">
+        {artworks.map((artwork) => <ArtworkCard artwork={artwork} />)}
+      </div>
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>
+
+<style>
+  .gallery {
+    padding: var(--space-3xl) 0;
+  }
+</style>
