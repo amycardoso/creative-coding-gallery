@@ -7,7 +7,7 @@ const BRANCH = "main";
 const rawUrl = (path: string) =>
   `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${path}`;
 
-const ArtworkSchema = z.object({
+const SketchSchema = z.object({
   slug: z.string(),
   title: z.string(),
   description: z.string(),
@@ -18,15 +18,15 @@ const ArtworkSchema = z.object({
 });
 
 const ManifestSchema = z.object({
-  artworks: z.array(ArtworkSchema),
+  sketches: z.array(SketchSchema),
 });
 
-export type Artwork = z.infer<typeof ArtworkSchema> & {
+export type Sketch = z.infer<typeof SketchSchema> & {
   mediaUrl: string;
   sourceUrl: string;
 };
 
-export async function fetchArtworks(): Promise<Artwork[]> {
+export async function fetchSketches(): Promise<Sketch[]> {
   const response = await fetch(rawUrl("manifest.json"));
 
   if (!response.ok) {
@@ -38,11 +38,11 @@ export async function fetchArtworks(): Promise<Artwork[]> {
   const data = await response.json();
   const manifest = ManifestSchema.parse(data);
 
-  return manifest.artworks
-    .map((artwork) => ({
-      ...artwork,
-      mediaUrl: rawUrl(artwork.media),
-      sourceUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/${BRANCH}/${artwork.slug}`,
+  return manifest.sketches
+    .map((sketch) => ({
+      ...sketch,
+      mediaUrl: rawUrl(sketch.media),
+      sourceUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/${BRANCH}/sketches/${sketch.slug}`,
     }))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }

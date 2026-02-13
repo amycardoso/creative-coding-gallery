@@ -3,12 +3,12 @@ import type { GetStaticPaths } from "astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
-import ArtworkCard from "../components/ArtworkCard.astro";
-import { fetchArtworks } from "../data/fetch-artworks";
+import SketchCard from "../components/SketchCard.astro";
+import { fetchSketches } from "../data/fetch-sketches";
 
 export const getStaticPaths = (async ({ paginate }) => {
-  const artworks = await fetchArtworks();
-  return paginate(artworks, { pageSize: 6 });
+  const sketches = await fetchSketches();
+  return paginate(sketches, { pageSize: 6 });
 }) satisfies GetStaticPaths;
 
 const { page } = Astro.props;
@@ -20,7 +20,7 @@ const nextUrl = page.url.next;
   <main class="container">
     <section class="gallery">
       <div class="gallery-grid" id="gallery-grid">
-        {page.data.map((artwork) => <ArtworkCard artwork={artwork} />)}
+        {page.data.map((sketch) => <SketchCard sketch={sketch} />)}
       </div>
       {nextUrl && <div id="scroll-sentinel" data-next={nextUrl}></div>}
     </section>

@@ -1,29 +1,29 @@
 ---
-import type { Artwork } from "../data/fetch-artworks";
+import type { Sketch } from "../data/fetch-sketches";
 
 interface Props {
-  artwork: Artwork;
+  sketch: Sketch;
 }
 
-const { artwork } = Astro.props;
-const detailUrl = `${import.meta.env.BASE_URL}${artwork.slug}/`;
+const { sketch } = Astro.props;
+const detailUrl = `${import.meta.env.BASE_URL}${sketch.slug}/`;
 ---
 
 <a href={detailUrl} class="card-link">
   <article class="card">
     <div class="card-media">
       <img
-        src={artwork.mediaUrl}
-        alt={artwork.title}
+        src={sketch.mediaUrl}
+        alt={sketch.title}
         loading="lazy"
         decoding="async"
       />
     </div>
     <div class="card-body">
-      <h2 class="card-title">{artwork.title}</h2>
-      <p class="card-description">{artwork.description}</p>
+      <h2 class="card-title">{sketch.title}</h2>
+      <p class="card-description">{sketch.description}</p>
       <div class="tags">
-        {artwork.tags.map((tag) => <span class="tag">{tag}</span>)}
+        {sketch.tags.map((tag) => <span class="tag">{tag}</span>)}
       </div>
     </div>
   </article>

@@ -2,29 +2,29 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
-import { fetchArtworks } from "../data/fetch-artworks";
-import type { Artwork } from "../data/fetch-artworks";
+import { fetchSketches } from "../data/fetch-sketches";
+import type { Sketch } from "../data/fetch-sketches";
 
 export async function getStaticPaths() {
-  const artworks = await fetchArtworks();
-  return artworks.map((artwork) => ({
-    params: { slug: artwork.slug },
-    props: { artwork },
+  const sketches = await fetchSketches();
+  return sketches.map((sketch) => ({
+    params: { slug: sketch.slug },
+    props: { sketch },
   }));
 }
 
 interface Props {
-  artwork: Artwork;
+  sketch: Sketch;
 }
 
-const { artwork } = Astro.props;
+const { sketch } = Astro.props;
 const base = import.meta.env.BASE_URL;
 ---
 
 <BaseLayout
-  title={`${artwork.title} — Creative Coding Gallery`}
-  description={artwork.description}
-  ogImage={artwork.mediaUrl}
+  title={`${sketch.title} — Creative Coding Gallery`}
+  description={sketch.description}
+  ogImage={sketch.mediaUrl}
 >
   <Header />
   <main class="container">
@@ -33,36 +33,36 @@ const base = import.meta.env.BASE_URL;
 
       <div class="detail-media">
         <img
-          src={artwork.mediaUrl}
-          alt={artwork.title}
+          src={sketch.mediaUrl}
+          alt={sketch.title}
           loading="eager"
           decoding="async"
         />
       </div>
 
-      <h1 class="detail-title">{artwork.title}</h1>
-      <p class="detail-description">{artwork.description}</p>
+      <h1 class="detail-title">{sketch.title}</h1>
+      <p class="detail-description">{sketch.description}</p>
 
       <dl class="detail-meta">
         <div>
           <dt>Date</dt>
-          <dd>{new Date(artwork.date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</dd>
+          <dd>{new Date(sketch.date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</dd>
         </div>
         <div>
           <dt>Tech Stack</dt>
           <dd class="tags">
-            {artwork.tech.map((t) => <span class="tag">{t}</span>)}
+            {sketch.tech.map((t) => <span class="tag">{t}</span>)}
           </dd>
         </div>
         <div>
           <dt>Tags</dt>
           <dd class="tags">
-            {artwork.tags.map((tag) => <span class="tag">{tag}</span>)}
+            {sketch.tags.map((tag) => <span class="tag">{tag}</span>)}
           </dd>
         </div>
         <div>
           <dt>Source</dt>
-          <dd><a href={artwork.sourceUrl} rel="noopener noreferrer">View on GitHub</a></dd>
+          <dd><a href={sketch.sourceUrl} rel="noopener noreferrer">View on GitHub</a></dd>
         </div>
       </dl>
     </article>
