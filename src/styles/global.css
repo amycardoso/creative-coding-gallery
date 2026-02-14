@@ -17,6 +17,8 @@
   --color-text-muted: #888;
   --color-accent: #e6c84d;
   --color-accent-dim: rgba(230, 200, 77, 0.15);
+  --color-tech: #4da6e6;
+  --color-tech-dim: rgba(77, 166, 230, 0.15);
 
   --font-display: "Space Grotesk", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
@@ -103,6 +105,17 @@ h3 {
   margin-bottom: var(--space-xl);
 }
 
+/* Card Link */
+.card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.card-link:hover {
+  text-decoration: none;
+}
+
 /* Card */
 .card {
   background: var(--color-surface);
@@ -163,6 +176,134 @@ h3 {
   color: var(--color-accent);
   border-radius: 3px;
   letter-spacing: 0.02em;
+}
+
+.tag--tech {
+  background: var(--color-tech-dim);
+  color: var(--color-tech);
+}
+
+/* Filter Bar */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  align-items: flex-start;
+  margin-bottom: var(--space-xl);
+}
+
+.filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.filter-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.filter-chip {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  padding: 0.3em 0.7em;
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.filter-chip:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.filter-chip[aria-pressed="true"] {
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.filter-chip--tech:hover {
+  border-color: var(--color-tech);
+  color: var(--color-tech);
+}
+
+.filter-chip--tech[aria-pressed="true"] {
+  background: var(--color-tech-dim);
+  color: var(--color-tech);
+  border-color: var(--color-tech);
+}
+
+.filter-actions {
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+  display: none;
+}
+
+.filter-actions.active {
+  display: flex;
+}
+
+.filter-clear {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  padding: 0.3em 0.7em;
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.filter-clear:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.filter-status {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.no-results {
+  text-align: center;
+  padding: var(--space-3xl) 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  display: none;
+}
+
+/* Gallery grid — fewer columns when filtered to avoid orphaned single cards */
+.gallery-grid--filtered {
+  columns: 2 340px;
+}
+
+/* Mobile filter bar */
+@media (max-width: 640px) {
+  .filter-bar {
+    gap: var(--space-md);
+  }
+
+  .filter-group {
+    gap: var(--space-xs);
+  }
+
+  .filter-chip {
+    font-size: 0.625rem;
+    padding: 0.25em 0.5em;
+  }
 }
 
 /* Detail Page */
