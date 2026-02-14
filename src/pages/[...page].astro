@@ -13,16 +13,66 @@ export const getStaticPaths = (async ({ paginate }) => {
 
 const { page } = Astro.props;
 const nextUrl = page.url.next;
+
+const allSketches = (await fetchSketches()).map((s) => ({
+  slug: s.slug,
+  title: s.title,
+  description: s.description,
+  tags: s.tags,
+  tech: s.tech,
+  mediaUrl: s.mediaUrl,
+}));
+const allTags = [...new Set(allSketches.flatMap((s) => s.tags))].sort();
+const allTech = [...new Set(allSketches.flatMap((s) => s.tech))].sort();
+
+const base = import.meta.env.BASE_URL;
 ---
 
 <BaseLayout title="Creative Coding Gallery">
   <Header />
   <main class="container">
     <section class="gallery">
+      <div class="filter-bar">
+        <div class="filter-group" role="group" aria-label="Filter by tag">
+          <span class="filter-label">Tags</span>
+          {allTags.map((tag) => (
+            <button
+              class="filter-chip"
+              data-filter-type="tags"
+              data-filter-value={tag}
+              aria-pressed="false"
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+        <div class="filter-group" role="group" aria-label="Filter by technology">
+          <span class="filter-label">Tech</span>
+          {allTech.map((t) => (
+            <button
+              class="filter-chip filter-chip--tech"
+              data-filter-type="tech"
+              data-filter-value={t}
+              aria-pressed="false"
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <div class="filter-actions" id="filter-actions" hidden>
+          <button class="filter-clear" id="filter-clear">Clear filters</button>
+          <span class="filter-status" id="filter-status" aria-live="polite"></span>
+        </div>
+      </div>
+
+      <script type="application/json" id="sketches-data" set:html={JSON.stringify(allSketches)} />
+      <script type="application/json" id="gallery-base" set:html={JSON.stringify(base)} />
+
       <div class="gallery-grid" id="gallery-grid">
         {page.data.map((sketch) => <SketchCard sketch={sketch} />)}
       </div>
       {nextUrl && <div id="scroll-sentinel" data-next={nextUrl}></div>}
+      <p class="no-results" id="no-results">No sketches match the current filters.</p>
     </section>
   </main>
   <Footer />
@@ -39,15 +89,135 @@ const nextUrl = page.url.next;
 </style>
 
 <script>
+  const grid = document.getElementById("gallery-grid")!;
   const sentinel = document.getElementById("scroll-sentinel");
-  if (sentinel) {
-    const grid = document.getElementById("gallery-grid")!;
-    let nextUrl = sentinel.dataset.next!;
+  const filterActions = document.getElementById("filter-actions")!;
+  const filterClear = document.getElementById("filter-clear")!;
+  const filterStatus = document.getElementById("filter-status")!;
+  const noResults = document.getElementById("no-results")!;
+  const chips = document.querySelectorAll<HTMLButtonElement>(".filter-chip");
+  const sketches = JSON.parse(
+    document.getElementById("sketches-data")!.textContent!,
+  );
+  const base: string = JSON.parse(
+    document.getElementById("gallery-base")!.textContent!,
+  );
+  const totalCount = sketches.length;
+
+  let mode: "paginated" | "filtered" = "paginated";
+  let observer: IntersectionObserver | null = null;
+
+  function esc(str: string) {
+    const el = document.createElement("span");
+    el.textContent = str;
+    return el.innerHTML;
+  }
+
+  function getFiltersFromUrl(): { tags: string[]; tech: string[] } {
+    const params = new URLSearchParams(window.location.search);
+    const tags = params.get("tags")?.split(",").filter(Boolean) ?? [];
+    const tech = params.get("tech")?.split(",").filter(Boolean) ?? [];
+    return { tags, tech };
+  }
+
+  function syncChipsToFilters(filters) {
+    chips.forEach((chip) => {
+      const type = chip.dataset.filterType;
+      const value = chip.dataset.filterValue;
+      const active = filters[type]?.includes(value) ?? false;
+      chip.setAttribute("aria-pressed", String(active));
+    });
+  }
+
+  function getFiltersFromChips() {
+    const tags = [];
+    const tech = [];
+    chips.forEach((chip) => {
+      if (chip.getAttribute("aria-pressed") === "true") {
+        if (chip.dataset.filterType === "tags") tags.push(chip.dataset.filterValue);
+        else tech.push(chip.dataset.filterValue);
+      }
+    });
+    return { tags, tech };
+  }
+
+  function updateUrl(filters) {
+    const params = new URLSearchParams();
+    if (filters.tags.length) params.set("tags", filters.tags.join(","));
+    if (filters.tech.length) params.set("tech", filters.tech.join(","));
+    const qs = params.toString();
+    const url = qs ? `${base}?${qs}` : base;
+    history.replaceState(null, "", url);
+  }
+
+  function renderCard(s: (typeof sketches)[number]) {
+    const tagSpans = s.tags
+      .map((t: string) => `<span class="tag">${esc(t)}</span>`)
+      .join("");
+    const techSpans = s.tech
+      .map((t: string) => `<span class="tag tag--tech">${esc(t)}</span>`)
+      .join("");
+    return `<a href="${base}${encodeURI(s.slug)}/" class="card-link">
+      <article class="card">
+        <div class="card-media">
+          <img src="${esc(s.mediaUrl)}" alt="${esc(s.title)}" loading="lazy" decoding="async" />
+        </div>
+        <div class="card-body">
+          <h2 class="card-title">${esc(s.title)}</h2>
+          <p class="card-description">${esc(s.description)}</p>
+          <div class="tags">${tagSpans}${techSpans}</div>
+        </div>
+      </article>
+    </a>`;
+  }
+
+  function applyFilters() {
+    const filters = getFiltersFromChips();
+    const hasFilters = filters.tags.length > 0 || filters.tech.length > 0;
+
+    if (!hasFilters) {
+      window.location.href = base;
+      return;
+    }
+
+    mode = "filtered";
+
+    if (sentinel) sentinel.style.display = "none";
+    if (observer) observer.disconnect();
+
+    const matched = sketches.filter((s) => {
+      const matchTags =
+        filters.tags.length === 0 ||
+        filters.tags.some((t) => s.tags.includes(t));
+      const matchTech =
+        filters.tech.length === 0 ||
+        filters.tech.some((t) => s.tech.includes(t));
+      return matchTags && matchTech;
+    });
+
+    grid.classList.add("gallery-grid--filtered");
+    grid.innerHTML = matched.map(renderCard).join("");
+
+    filterActions.hidden = false;
+    filterStatus.textContent = `Showing ${matched.length} of ${totalCount} sketches`;
+    noResults.style.display = matched.length === 0 ? "block" : "none";
+
+    updateUrl(filters);
+  }
+
+  function clearFilters() {
+    window.location.href = base;
+  }
+
+  function initInfiniteScroll() {
+    if (!sentinel) return;
+
+    let nextUrl = sentinel.dataset.next;
     let loading = false;
 
-    const observer = new IntersectionObserver(
+    observer = new IntersectionObserver(
       async (entries) => {
-        if (!entries[0].isIntersecting || loading || !nextUrl) return;
+        if (!entries[0].isIntersecting || loading || !nextUrl || mode !== "paginated") return;
         loading = true;
 
         const res = await fetch(nextUrl);
@@ -71,5 +241,37 @@ const nextUrl = page.url.next;
     );
 
     observer.observe(sentinel);
+  }
+
+  chips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const pressed = chip.getAttribute("aria-pressed") === "true";
+      chip.setAttribute("aria-pressed", String(!pressed));
+      applyFilters();
+    });
+  });
+
+  filterClear.addEventListener("click", clearFilters);
+
+  window.addEventListener("popstate", () => {
+    const filters = getFiltersFromUrl();
+    const hasFilters = filters.tags.length > 0 || filters.tech.length > 0;
+    if (hasFilters) {
+      syncChipsToFilters(filters);
+      applyFilters();
+    } else {
+      window.location.href = base;
+    }
+  });
+
+  const initialFilters = getFiltersFromUrl();
+  const hasInitialFilters =
+    initialFilters.tags.length > 0 || initialFilters.tech.length > 0;
+
+  if (hasInitialFilters) {
+    syncChipsToFilters(initialFilters);
+    applyFilters();
+  } else {
+    initInfiniteScroll();
   }
 </script>

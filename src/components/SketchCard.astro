@@ -24,19 +24,8 @@ const detailUrl = `${import.meta.env.BASE_URL}${sketch.slug}/`;
       <p class="card-description">{sketch.description}</p>
       <div class="tags">
         {sketch.tags.map((tag) => <span class="tag">{tag}</span>)}
+        {sketch.tech.map((t) => <span class="tag tag--tech">{t}</span>)}
       </div>
     </div>
   </article>
 </a>
-
-<style>
-  .card-link {
-    text-decoration: none;
-    color: inherit;
-    display: block;
-  }
-
-  .card-link:hover {
-    text-decoration: none;
-  }
-</style>
