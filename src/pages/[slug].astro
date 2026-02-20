@@ -31,12 +31,15 @@ const base = import.meta.env.BASE_URL;
     <article class="detail">
       <a href={base} class="back-link">&larr; Back to gallery</a>
 
-      <div class="detail-media">
+      <div class="detail-media" style={`aspect-ratio:${sketch.width}/${sketch.height}`}>
         <img
           src={sketch.mediaUrl}
           alt={sketch.title}
+          width={sketch.width}
+          height={sketch.height}
           loading="eager"
           decoding="async"
+          onload="this.classList.add('loaded')"
         />
       </div>
 

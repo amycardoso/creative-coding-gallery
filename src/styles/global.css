@@ -94,15 +94,19 @@ h3 {
   padding: 0 var(--space-lg);
 }
 
-/* Gallery Grid — masonry via CSS columns */
+/* Gallery Grid — JS masonry with flexbox columns */
 .gallery-grid {
-  columns: 3 340px;
-  column-gap: var(--space-xl);
+  display: flex;
+  gap: var(--space-xl);
+  align-items: flex-start;
 }
 
-.gallery-grid > * {
-  break-inside: avoid;
-  margin-bottom: var(--space-xl);
+.gallery-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
 }
 
 /* Card Link */
@@ -114,6 +118,12 @@ h3 {
 
 .card-link:hover {
   text-decoration: none;
+}
+
+/* Skeleton loading */
+@keyframes skeleton-pulse {
+  0%, 100% { background-color: var(--color-bg); }
+  50% { background-color: var(--color-surface); }
 }
 
 /* Card */
@@ -133,11 +143,18 @@ h3 {
 .card-media {
   background: var(--color-bg);
   overflow: hidden;
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
 }
 
 .card-media img {
   width: 100%;
   height: auto;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.card-media img.loaded {
+  opacity: 1;
 }
 
 .card-body {
@@ -285,9 +302,9 @@ h3 {
   display: none;
 }
 
-/* Gallery grid — fewer columns when filtered to avoid orphaned single cards */
-.gallery-grid--filtered {
-  columns: 2 340px;
+/* Gallery grid — fewer columns when filtered */
+.gallery-grid--filtered .gallery-col:last-child {
+  display: none;
 }
 
 /* Mobile filter bar */
@@ -318,11 +335,18 @@ h3 {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   margin-bottom: var(--space-xl);
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
 }
 
 .detail-media img {
   width: 100%;
   height: auto;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.detail-media img.loaded {
+  opacity: 1;
 }
 
 .detail-title {

@@ -21,6 +21,8 @@ const allSketches = (await fetchSketches()).map((s) => ({
   tags: s.tags,
   tech: s.tech,
   mediaUrl: s.mediaUrl,
+  width: s.width,
+  height: s.height,
 }));
 const allTags = [...new Set(allSketches.flatMap((s) => s.tags))].sort();
 const allTech = [...new Set(allSketches.flatMap((s) => s.tech))].sort();
@@ -96,7 +98,7 @@ const base = import.meta.env.BASE_URL;
   const filterStatus = document.getElementById("filter-status")!;
   const noResults = document.getElementById("no-results")!;
   const chips = document.querySelectorAll<HTMLButtonElement>(".filter-chip");
-  const sketches = JSON.parse(
+  const sketches: Record<string, any>[] = JSON.parse(
     document.getElementById("sketches-data")!.textContent!,
   );
   const base: string = JSON.parse(
@@ -107,6 +109,78 @@ const base = import.meta.env.BASE_URL;
   let mode: "paginated" | "filtered" = "paginated";
   let observer: IntersectionObserver | null = null;
 
+  // ── Masonry ──────────────────────────────────────────────
+  const COL_MIN_WIDTH = 340;
+  let cols: HTMLDivElement[] = [];
+  let colHeights: number[] = [];
+
+  function getColCount() {
+    const w = grid.clientWidth;
+    if (w === 0) return 3;
+    const gap = parseFloat(getComputedStyle(grid).gap) || 32;
+    return Math.max(1, Math.floor((w + gap) / (COL_MIN_WIDTH + gap)));
+  }
+
+  function ensureColumns(count: number) {
+    while (cols.length < count) {
+      const col = document.createElement("div");
+      col.className = "gallery-col";
+      grid.appendChild(col);
+      cols.push(col);
+      colHeights.push(0);
+    }
+    while (cols.length > count) {
+      const removed = cols.pop()!;
+      const cards = [...removed.children];
+      removed.remove();
+      colHeights.pop();
+      // redistribute orphaned cards
+      for (const card of cards) appendToShortest(card as HTMLElement);
+    }
+  }
+
+  function cardWeight(el: HTMLElement): number {
+    const media = el.querySelector<HTMLElement>(".card-media");
+    const ar = media?.style.aspectRatio;
+    if (ar) {
+      const [w, h] = ar.split("/").map(Number);
+      if (w && h) return h / w;
+    }
+    return 1;
+  }
+
+  function appendToShortest(card: HTMLElement) {
+    const idx = colHeights.indexOf(Math.min(...colHeights));
+    cols[idx].appendChild(card);
+    colHeights[idx] += cardWeight(card) + 0.4; // 0.4 ≈ card body
+  }
+
+  function buildMasonry(cards: HTMLElement[]) {
+    const count = getColCount();
+    cols = [];
+    colHeights = [];
+    grid.innerHTML = "";
+    ensureColumns(count);
+    for (const card of cards) appendToShortest(card);
+  }
+
+  // Initial setup: take server-rendered cards and distribute into columns
+  const initialCards = [...grid.children] as HTMLElement[];
+  buildMasonry(initialCards);
+
+  // Rebuild on resize if column count changes
+  let currentColCount = cols.length;
+  const ro = new ResizeObserver(() => {
+    const next = getColCount();
+    if (next !== currentColCount) {
+      currentColCount = next;
+      const allCards = cols.flatMap((c) => [...c.children]) as HTMLElement[];
+      buildMasonry(allCards);
+    }
+  });
+  ro.observe(grid);
+
+  // ── Helpers ──────────────────────────────────────────────
   function esc(str: string) {
     const el = document.createElement("span");
     el.textContent = str;
@@ -120,28 +194,28 @@ const base = import.meta.env.BASE_URL;
     return { tags, tech };
   }
 
-  function syncChipsToFilters(filters) {
+  function syncChipsToFilters(filters: Record<string, string[]>) {
     chips.forEach((chip) => {
-      const type = chip.dataset.filterType;
-      const value = chip.dataset.filterValue;
+      const type = chip.dataset.filterType!;
+      const value = chip.dataset.filterValue!;
       const active = filters[type]?.includes(value) ?? false;
       chip.setAttribute("aria-pressed", String(active));
     });
   }
 
   function getFiltersFromChips() {
-    const tags = [];
-    const tech = [];
+    const tags: string[] = [];
+    const tech: string[] = [];
     chips.forEach((chip) => {
       if (chip.getAttribute("aria-pressed") === "true") {
-        if (chip.dataset.filterType === "tags") tags.push(chip.dataset.filterValue);
-        else tech.push(chip.dataset.filterValue);
+        if (chip.dataset.filterType === "tags") tags.push(chip.dataset.filterValue!);
+        else tech.push(chip.dataset.filterValue!);
       }
     });
     return { tags, tech };
   }
 
-  function updateUrl(filters) {
+  function updateUrl(filters: Record<string, string[]>) {
     const params = new URLSearchParams();
     if (filters.tags.length) params.set("tags", filters.tags.join(","));
     if (filters.tech.length) params.set("tech", filters.tech.join(","));
@@ -159,8 +233,8 @@ const base = import.meta.env.BASE_URL;
       .join("");
     return `<a href="${base}${encodeURI(s.slug)}/" class="card-link">
       <article class="card">
-        <div class="card-media">
-          <img src="${esc(s.mediaUrl)}" alt="${esc(s.title)}" loading="lazy" decoding="async" />
+        <div class="card-media" style="aspect-ratio:${s.width}/${s.height}">
+          <img src="${esc(s.mediaUrl)}" alt="${esc(s.title)}" width="${s.width}" height="${s.height}" loading="lazy" decoding="async" onload="this.classList.add('loaded')" />
         </div>
         <div class="card-body">
           <h2 class="card-title">${esc(s.title)}</h2>
@@ -171,6 +245,13 @@ const base = import.meta.env.BASE_URL;
     </a>`;
   }
 
+  function htmlToElements(html: string): HTMLElement[] {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    return [...tmp.children] as HTMLElement[];
+  }
+
+  // ── Filters ──────────────────────────────────────────────
   function applyFilters() {
     const filters = getFiltersFromChips();
     const hasFilters = filters.tags.length > 0 || filters.tech.length > 0;
@@ -188,15 +269,16 @@ const base = import.meta.env.BASE_URL;
     const matched = sketches.filter((s) => {
       const matchTags =
         filters.tags.length === 0 ||
-        filters.tags.some((t) => s.tags.includes(t));
+        filters.tags.some((t: string) => s.tags.includes(t));
       const matchTech =
         filters.tech.length === 0 ||
-        filters.tech.some((t) => s.tech.includes(t));
+        filters.tech.some((t: string) => s.tech.includes(t));
       return matchTags && matchTech;
     });
 
     grid.classList.add("gallery-grid--filtered");
-    grid.innerHTML = matched.map(renderCard).join("");
+    const cards = htmlToElements(matched.map(renderCard).join(""));
+    buildMasonry(cards);
 
     filterActions.classList.add("active");
     filterStatus.textContent = `Showing ${matched.length} of ${totalCount} sketches`;
@@ -209,6 +291,7 @@ const base = import.meta.env.BASE_URL;
     window.location.href = base;
   }
 
+  // ── Infinite scroll ──────────────────────────────────────
   function initInfiniteScroll() {
     if (!sentinel) return;
 
@@ -225,13 +308,15 @@ const base = import.meta.env.BASE_URL;
         const doc = new DOMParser().parseFromString(html, "text/html");
 
         const newCards = doc.querySelectorAll("#gallery-grid > *");
-        newCards.forEach((card) => grid.appendChild(document.adoptNode(card)));
+        for (const card of newCards) {
+          appendToShortest(document.adoptNode(card) as HTMLElement);
+        }
 
         const newSentinel = doc.getElementById("scroll-sentinel");
         if (newSentinel?.dataset.next) {
           nextUrl = newSentinel.dataset.next;
         } else {
-          observer.disconnect();
+          observer!.disconnect();
           sentinel.remove();
         }
 
@@ -243,6 +328,7 @@ const base = import.meta.env.BASE_URL;
     observer.observe(sentinel);
   }
 
+  // ── Events ───────────────────────────────────────────────
   chips.forEach((chip) => {
     chip.addEventListener("click", () => {
       const pressed = chip.getAttribute("aria-pressed") === "true";
