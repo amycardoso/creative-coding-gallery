@@ -236,9 +236,11 @@ h3 {
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-.filter-chip:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+@media (hover: hover) {
+  .filter-chip:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
 }
 
 .filter-chip[aria-pressed="true"] {
@@ -247,9 +249,11 @@ h3 {
   border-color: var(--color-accent);
 }
 
-.filter-chip--tech:hover {
-  border-color: var(--color-tech);
-  color: var(--color-tech);
+@media (hover: hover) {
+  .filter-chip--tech:hover {
+    border-color: var(--color-tech);
+    color: var(--color-tech);
+  }
 }
 
 .filter-chip--tech[aria-pressed="true"] {
