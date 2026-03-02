@@ -302,8 +302,8 @@ h3 {
   display: none;
 }
 
-/* Gallery grid — fewer columns when filtered */
-.gallery-grid--filtered .gallery-col:last-child {
+/* Gallery grid — fewer columns when filtered (only if more than one column) */
+.gallery-grid--filtered .gallery-col:last-child:not(:only-child) {
   display: none;
 }
 
