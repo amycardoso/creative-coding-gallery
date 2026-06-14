@@ -8,11 +8,20 @@ const BRANCH = "main";
 const rawUrl = (path: string) =>
   `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${path}`;
 
+export const CATEGORIES = [
+  "space",
+  "landscape",
+  "brasilidade",
+  "abstract",
+  "data-viz",
+] as const;
+
 const SketchSchema = z.object({
   slug: z.string(),
   title: z.string(),
   description: z.string(),
   date: z.string(),
+  category: z.enum(CATEGORIES),
   media: z.string(),
   tags: z.array(z.string()),
   tech: z.array(z.string()),

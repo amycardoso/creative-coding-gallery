@@ -4,7 +4,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import SketchCard from "../components/SketchCard.astro";
-import { fetchSketches } from "../data/fetch-sketches";
+import { fetchSketches, CATEGORIES } from "../data/fetch-sketches";
 
 export const getStaticPaths = (async ({ paginate }) => {
   const sketches = await fetchSketches();
@@ -18,12 +18,16 @@ const allSketches = (await fetchSketches()).map((s) => ({
   slug: s.slug,
   title: s.title,
   description: s.description,
+  category: s.category,
   tags: s.tags,
   tech: s.tech,
   mediaUrl: s.mediaUrl,
   width: s.width,
   height: s.height,
 }));
+// Keep the canonical CATEGORIES order, but only show buckets that have sketches.
+const presentCategories = new Set(allSketches.map((s) => s.category));
+const allCategories = CATEGORIES.filter((c) => presentCategories.has(c));
 const allTags = [...new Set(allSketches.flatMap((s) => s.tags))].sort();
 const allTech = [...new Set(allSketches.flatMap((s) => s.tech))].sort();
 
@@ -35,6 +39,19 @@ const base = import.meta.env.BASE_URL;
   <main class="container">
     <section class="gallery">
       <div class="filter-bar">
+        <div class="filter-group" role="group" aria-label="Filter by category">
+          <span class="filter-label">Category</span>
+          {allCategories.map((category) => (
+            <button
+              class="filter-chip filter-chip--category"
+              data-filter-type="category"
+              data-filter-value={category}
+              aria-pressed="false"
+            >
+              {category}
+            </button>
+          ))}
+        </div>
         <div class="filter-group" role="group" aria-label="Filter by tag">
           <span class="filter-label">Tags</span>
           {allTags.map((tag) => (
@@ -196,11 +213,12 @@ const base = import.meta.env.BASE_URL;
     return el.innerHTML;
   }
 
-  function getFiltersFromUrl(): { tags: string[]; tech: string[] } {
+  function getFiltersFromUrl(): { category: string[]; tags: string[]; tech: string[] } {
     const params = new URLSearchParams(window.location.search);
+    const category = params.get("category")?.split(",").filter(Boolean) ?? [];
     const tags = params.get("tags")?.split(",").filter(Boolean) ?? [];
     const tech = params.get("tech")?.split(",").filter(Boolean) ?? [];
-    return { tags, tech };
+    return { category, tags, tech };
   }
 
   function syncChipsToFilters(filters: Record<string, string[]>) {
@@ -213,19 +231,23 @@ const base = import.meta.env.BASE_URL;
   }
 
   function getFiltersFromChips() {
+    const category: string[] = [];
     const tags: string[] = [];
     const tech: string[] = [];
     chips.forEach((chip) => {
       if (chip.getAttribute("aria-pressed") === "true") {
-        if (chip.dataset.filterType === "tags") tags.push(chip.dataset.filterValue!);
-        else tech.push(chip.dataset.filterValue!);
+        const value = chip.dataset.filterValue!;
+        if (chip.dataset.filterType === "category") category.push(value);
+        else if (chip.dataset.filterType === "tags") tags.push(value);
+        else tech.push(value);
       }
     });
-    return { tags, tech };
+    return { category, tags, tech };
   }
 
   function updateUrl(filters: Record<string, string[]>) {
     const params = new URLSearchParams();
+    if (filters.category.length) params.set("category", filters.category.join(","));
     if (filters.tags.length) params.set("tags", filters.tags.join(","));
     if (filters.tech.length) params.set("tech", filters.tech.join(","));
     const qs = params.toString();
@@ -263,7 +285,10 @@ const base = import.meta.env.BASE_URL;
   // ── Filters ──────────────────────────────────────────────
   function applyFilters() {
     const filters = getFiltersFromChips();
-    const hasFilters = filters.tags.length > 0 || filters.tech.length > 0;
+    const hasFilters =
+      filters.category.length > 0 ||
+      filters.tags.length > 0 ||
+      filters.tech.length > 0;
 
     if (!hasFilters) {
       window.location.href = base;
@@ -276,13 +301,16 @@ const base = import.meta.env.BASE_URL;
     if (observer) observer.disconnect();
 
     const matched = sketches.filter((s) => {
+      const matchCategory =
+        filters.category.length === 0 ||
+        filters.category.includes(s.category);
       const matchTags =
         filters.tags.length === 0 ||
         filters.tags.some((t: string) => s.tags.includes(t));
       const matchTech =
         filters.tech.length === 0 ||
         filters.tech.some((t: string) => s.tech.includes(t));
-      return matchTags && matchTech;
+      return matchCategory && matchTags && matchTech;
     });
 
     grid.classList.add("gallery-grid--filtered");
@@ -356,7 +384,10 @@ const base = import.meta.env.BASE_URL;
 
   window.addEventListener("popstate", () => {
     const filters = getFiltersFromUrl();
-    const hasFilters = filters.tags.length > 0 || filters.tech.length > 0;
+    const hasFilters =
+      filters.category.length > 0 ||
+      filters.tags.length > 0 ||
+      filters.tech.length > 0;
     if (hasFilters) {
       syncChipsToFilters(filters);
       applyFilters();
@@ -367,7 +398,9 @@ const base = import.meta.env.BASE_URL;
 
   const initialFilters = getFiltersFromUrl();
   const hasInitialFilters =
-    initialFilters.tags.length > 0 || initialFilters.tech.length > 0;
+    initialFilters.category.length > 0 ||
+    initialFilters.tags.length > 0 ||
+    initialFilters.tech.length > 0;
 
   if (hasInitialFilters) {
     syncChipsToFilters(initialFilters);

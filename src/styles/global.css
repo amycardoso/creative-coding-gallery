@@ -19,6 +19,8 @@
   --color-accent-dim: rgba(230, 200, 77, 0.15);
   --color-tech: #4da6e6;
   --color-tech-dim: rgba(77, 166, 230, 0.15);
+  --color-cat: #7bd88f;
+  --color-cat-dim: rgba(123, 216, 143, 0.15);
 
   --font-display: "Space Grotesk", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
@@ -247,6 +249,19 @@ h3 {
   background: var(--color-accent-dim);
   color: var(--color-accent);
   border-color: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .filter-chip--category:hover {
+    border-color: var(--color-cat);
+    color: var(--color-cat);
+  }
+}
+
+.filter-chip--category[aria-pressed="true"] {
+  background: var(--color-cat-dim);
+  color: var(--color-cat);
+  border-color: var(--color-cat);
 }
 
 @media (hover: hover) {
