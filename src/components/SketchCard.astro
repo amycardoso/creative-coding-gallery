@@ -9,7 +9,7 @@ const { sketch } = Astro.props;
 const detailUrl = `${import.meta.env.BASE_URL}${sketch.slug}/`;
 ---
 
-<a href={detailUrl} class="card-link">
+<a href={detailUrl} class="card-link" data-slug={sketch.slug}>
   <article class="card">
     <div class="card-media" style={`aspect-ratio:${sketch.width}/${sketch.height}`}>
       <img

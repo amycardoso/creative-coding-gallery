@@ -168,6 +168,15 @@ const base = import.meta.env.BASE_URL;
   const initialCards = [...grid.children] as HTMLElement[];
   buildMasonry(initialCards);
 
+  // Track which sketches are already in the grid so infinite scroll never
+  // appends the same card twice (e.g. on observer re-entry, a redirected
+  // next-page fetch, or back-navigation scroll restoration).
+  const seenSlugs = new Set<string>(
+    initialCards
+      .map((card) => card.dataset.slug)
+      .filter((slug): slug is string => Boolean(slug)),
+  );
+
   // Rebuild on resize if column count changes
   let currentColCount = cols.length;
   const ro = new ResizeObserver(() => {
@@ -231,7 +240,7 @@ const base = import.meta.env.BASE_URL;
     const techSpans = s.tech
       .map((t: string) => `<span class="tag tag--tech">${esc(t)}</span>`)
       .join("");
-    return `<a href="${base}${encodeURI(s.slug)}/" class="card-link">
+    return `<a href="${base}${encodeURI(s.slug)}/" class="card-link" data-slug="${esc(s.slug)}">
       <article class="card">
         <div class="card-media" style="aspect-ratio:${s.width}/${s.height}">
           <img src="${esc(s.mediaUrl)}" alt="${esc(s.title)}" width="${s.width}" height="${s.height}" loading="lazy" decoding="async" onload="this.classList.add('loaded')" />
@@ -297,19 +306,25 @@ const base = import.meta.env.BASE_URL;
 
     let nextUrl = sentinel.dataset.next;
     let loading = false;
+    const fetchedUrls = new Set<string>();
 
     observer = new IntersectionObserver(
       async (entries) => {
         if (!entries[0].isIntersecting || loading || !nextUrl || mode !== "paginated") return;
+        if (fetchedUrls.has(nextUrl)) return;
         loading = true;
+        fetchedUrls.add(nextUrl);
 
         const res = await fetch(nextUrl);
         const html = await res.text();
         const doc = new DOMParser().parseFromString(html, "text/html");
 
-        const newCards = doc.querySelectorAll("#gallery-grid > *");
+        const newCards = doc.querySelectorAll<HTMLElement>("#gallery-grid > *");
         for (const card of newCards) {
-          appendToShortest(document.adoptNode(card) as HTMLElement);
+          const slug = card.dataset.slug;
+          if (slug && seenSlugs.has(slug)) continue;
+          if (slug) seenSlugs.add(slug);
+          appendToShortest(document.adoptNode(card));
         }
 
         const newSentinel = doc.getElementById("scroll-sentinel");
