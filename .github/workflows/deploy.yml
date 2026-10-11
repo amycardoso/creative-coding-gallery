@@ -31,6 +31,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Pin sketches to the latest commit
+        run: echo "SKETCHES_REF=$(git ls-remote https://github.com/amycardoso/creative-coding refs/heads/main | cut -f1)" >> "$GITHUB_ENV"
+
       - run: npm run build
 
       - uses: actions/upload-pages-artifact@v3
