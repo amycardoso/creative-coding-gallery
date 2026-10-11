@@ -5,8 +5,12 @@ const REPO_OWNER = "amycardoso";
 const REPO_NAME = "creative-coding";
 const BRANCH = "main";
 
+// raw.githubusercontent.com caches branch URLs for minutes, so a build right
+// after a push can read a stale manifest. CI pins SKETCHES_REF to the commit.
+const RAW_REF = process.env.SKETCHES_REF || BRANCH;
+
 const rawUrl = (path: string) =>
-  `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${path}`;
+  `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${RAW_REF}/${path}`;
 
 export const CATEGORIES = [
   "space",
