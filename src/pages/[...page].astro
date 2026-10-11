@@ -107,8 +107,11 @@ const base = import.meta.env.BASE_URL;
 
       {page.currentPage === 1 && seriesList.length > 0 && (
         <section class="series-section" id="series-section">
-          <h2 class="section-label">Series</h2>
-          <div class="series-grid">
+          <div class="section-head">
+            <h2 class="section-label">Series</h2>
+            <a class="section-more" href={`${base}series/`}>All series &rarr;</a>
+          </div>
+          <div class="series-strip">
             {seriesList.map((series) => <SeriesCard series={series} />)}
           </div>
         </section>
