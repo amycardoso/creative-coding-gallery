@@ -1,0 +1,29 @@
+---
+import type { Series } from "../data/fetch-sketches";
+
+interface Props {
+  series: Series;
+}
+
+const { series } = Astro.props;
+const url = `${import.meta.env.BASE_URL}series/${series.slug}/`;
+// A 2x2 mosaic for up to four parts, 3x2 beyond that.
+const thumbs = series.sketches.slice(0, 6);
+const mosaicCols = thumbs.length > 4 ? 3 : 2;
+---
+
+<a href={url} class="series-card-link">
+  <article class="series-card">
+    <div class="series-mosaic" style={`--cols:${mosaicCols}`}>
+      {thumbs.map((s) => (
+        <img src={s.mediaUrl} alt="" loading="lazy" decoding="async" onload="this.classList.add('loaded')" />
+      ))}
+    </div>
+    <div class="series-body">
+      <span class="series-count">Series · {series.sketches.length} works</span>
+      <h2 class="series-title">{series.title}</h2>
+      {series.description && <p class="series-description">{series.description}</p>}
+      <span class="series-go">View series &rarr;</span>
+    </div>
+  </article>
+</a>
