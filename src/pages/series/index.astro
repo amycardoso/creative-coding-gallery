@@ -1,0 +1,25 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Header from "../../components/Header.astro";
+import Footer from "../../components/Footer.astro";
+import SeriesCard from "../../components/SeriesCard.astro";
+import { fetchSeries } from "../../data/fetch-sketches";
+
+const seriesList = await fetchSeries();
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout title="Series — Creative Coding Gallery">
+  <Header />
+  <main class="container">
+    <section class="intro">
+      <a href={base} class="back-link">&larr; Back to gallery</a>
+      <h1 class="intro-title">Series</h1>
+      <p class="intro-text">Works made together, around one subject.</p>
+    </section>
+    <div class="series-grid series-grid--page">
+      {seriesList.map((series) => <SeriesCard series={series} />)}
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>

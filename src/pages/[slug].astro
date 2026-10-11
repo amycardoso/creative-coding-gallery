@@ -2,22 +2,32 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
-import { fetchSketches } from "../data/fetch-sketches";
+import { fetchSketches, fetchSeries } from "../data/fetch-sketches";
 import type { Sketch } from "../data/fetch-sketches";
 
 export async function getStaticPaths() {
   const sketches = await fetchSketches();
-  return sketches.map((sketch) => ({
-    params: { slug: sketch.slug },
-    props: { sketch },
-  }));
+  const seriesList = await fetchSeries();
+  return sketches.map((sketch, i) => {
+    // Inside a series, step through its parts in order; otherwise follow the gallery order.
+    const siblings = sketch.series
+      ? seriesList.find((s) => s.slug === sketch.series)!.sketches
+      : sketches;
+    const at = sketch.series ? siblings.indexOf(sketch) : i;
+    return {
+      params: { slug: sketch.slug },
+      props: { sketch, prev: siblings[at - 1], next: siblings[at + 1] },
+    };
+  });
 }
 
 interface Props {
   sketch: Sketch;
+  prev?: Sketch;
+  next?: Sketch;
 }
 
-const { sketch } = Astro.props;
+const { sketch, prev, next } = Astro.props;
 const base = import.meta.env.BASE_URL;
 ---
 
@@ -31,43 +41,72 @@ const base = import.meta.env.BASE_URL;
     <article class="detail">
       <a href={base} class="back-link">&larr; Back to gallery</a>
 
-      <div class="detail-media" style={`aspect-ratio:${sketch.width}/${sketch.height}`}>
-        <img
-          src={sketch.mediaUrl}
-          alt={sketch.title}
-          width={sketch.width}
-          height={sketch.height}
-          loading="eager"
-          decoding="async"
-          onload="this.classList.add('loaded')"
-        />
+      <div class="detail-layout">
+        <div class="detail-media">
+          <img
+            src={sketch.mediaUrl}
+            alt={sketch.title}
+            width={sketch.width}
+            height={sketch.height}
+            loading="eager"
+            decoding="async"
+            onload="this.classList.add('loaded')"
+          />
+        </div>
+
+        <div class="detail-info">
+          {sketch.series && (
+            <p class="detail-series">
+              Part of <a href={`${base}series/${sketch.series}/`}>{sketch.seriesTitle}</a>
+              · {sketch.seriesIndex} / {sketch.seriesCount}
+            </p>
+          )}
+          <h1 class="detail-title">{sketch.title}</h1>
+          <p class="detail-description">{sketch.description}</p>
+
+          <dl class="detail-meta">
+            <div>
+              <dt>Date</dt>
+              <dd>{new Date(sketch.date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}</dd>
+            </div>
+            <div>
+              <dt>Category</dt>
+              <dd><a href={`${base}?category=${sketch.category}`}>{sketch.category}</a></dd>
+            </div>
+            <div>
+              <dt>Tech Stack</dt>
+              <dd class="tags">
+                {sketch.tech.map((t) => <span class="tag tag--tech">{t}</span>)}
+              </dd>
+            </div>
+            {sketch.tags.length > 0 && (
+              <div>
+                <dt>Tags</dt>
+                <dd class="tags">
+                  {sketch.tags.map((tag) => <span class="tag">{tag}</span>)}
+                </dd>
+              </div>
+            )}
+            <div>
+              <dt>Source</dt>
+              <dd><a href={sketch.sourceUrl} rel="noopener noreferrer">View on GitHub</a></dd>
+            </div>
+          </dl>
+        </div>
       </div>
 
-      <h1 class="detail-title">{sketch.title}</h1>
-      <p class="detail-description">{sketch.description}</p>
-
-      <dl class="detail-meta">
-        <div>
-          <dt>Date</dt>
-          <dd>{new Date(sketch.date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</dd>
-        </div>
-        <div>
-          <dt>Tech Stack</dt>
-          <dd class="tags">
-            {sketch.tech.map((t) => <span class="tag tag--tech">{t}</span>)}
-          </dd>
-        </div>
-        <div>
-          <dt>Tags</dt>
-          <dd class="tags">
-            {sketch.tags.map((tag) => <span class="tag">{tag}</span>)}
-          </dd>
-        </div>
-        <div>
-          <dt>Source</dt>
-          <dd><a href={sketch.sourceUrl} rel="noopener noreferrer">View on GitHub</a></dd>
-        </div>
-      </dl>
+      <nav class="detail-nav" aria-label={sketch.series ? `${sketch.seriesTitle} series` : "More sketches"}>
+        {prev ? (
+          <a href={`${base}${prev.slug}/`} class="detail-nav-link" rel="prev">
+            <span>&larr; Previous</span>{prev.title}
+          </a>
+        ) : <span />}
+        {next && (
+          <a href={`${base}${next.slug}/`} class="detail-nav-link detail-nav-link--next" rel="next">
+            <span>Next &rarr;</span>{next.title}
+          </a>
+        )}
+      </nav>
     </article>
   </main>
   <Footer />
@@ -75,6 +114,6 @@ const base = import.meta.env.BASE_URL;
 
 <style>
   .detail {
-    padding: var(--space-3xl) 0;
+    padding: var(--space-2xl) 0 var(--space-xl);
   }
 </style>

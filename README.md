@@ -24,6 +24,12 @@ creative-coding repo                    creative-coding-gallery repo
 2. Add an entry to `manifest.json`
 3. Push — the gallery rebuilds automatically
 
+Sketches that belong to a series carry a `"series": "<slug>"` field. The gallery groups them (in manifest order) into a series block on the home page and a page at `/series/<slug>/`. An optional top-level `series` array in the manifest gives each one a title and description:
+
+```json
+"series": [{ "slug": "reflexoes", "title": "Reflexões", "description": "..." }]
+```
+
 ## Development
 
 ```bash

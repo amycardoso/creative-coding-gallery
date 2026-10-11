@@ -1,0 +1,45 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Header from "../../components/Header.astro";
+import Footer from "../../components/Footer.astro";
+import SketchCard from "../../components/SketchCard.astro";
+import { fetchSeries } from "../../data/fetch-sketches";
+import type { Series } from "../../data/fetch-sketches";
+
+export async function getStaticPaths() {
+  const seriesList = await fetchSeries();
+  return seriesList.map((series) => ({
+    params: { series: series.slug },
+    props: { series },
+  }));
+}
+
+interface Props {
+  series: Series;
+}
+
+const { series } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout
+  title={`${series.title} — Creative Coding Gallery`}
+  description={series.description}
+  ogImage={series.sketches[0]?.mediaUrl}
+>
+  <Header />
+  <main class="container">
+    <section class="intro">
+      <a href={`${base}series/`} class="back-link">&larr; All series</a>
+      <span class="series-count">Series · {series.sketches.length} works</span>
+      <h1 class="intro-title">{series.title}</h1>
+      {series.description && <p class="intro-text">{series.description}</p>}
+    </section>
+    <ol class="series-works">
+      {series.sketches.map((sketch) => (
+        <li><SketchCard sketch={sketch} /></li>
+      ))}
+    </ol>
+  </main>
+  <Footer />
+</BaseLayout>
