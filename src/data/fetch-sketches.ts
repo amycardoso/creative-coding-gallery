@@ -69,7 +69,8 @@ export async function fetchSketches(): Promise<Sketch[]> {
       return {
         ...sketch,
         mediaUrl,
-        sourceUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/${BRANCH}/sketches/${sketch.slug}`,
+        // The sketch folder is wherever its media lives (sketches/<category>/<slug>/...).
+        sourceUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/${BRANCH}/${sketch.media.split("/").slice(0, -1).join("/")}`,
         width,
         height,
       };
