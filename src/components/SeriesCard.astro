@@ -7,14 +7,19 @@ interface Props {
 
 const { series } = Astro.props;
 const url = `${import.meta.env.BASE_URL}series/${series.slug}/`;
-// A 2x2 mosaic for up to four parts, 3x2 beyond that.
-const thumbs = series.sketches.slice(0, 6);
-const mosaicCols = thumbs.length > 4 ? 3 : 2;
+// Two parts side by side, three as one large plus two small, four as 2x2,
+// five or six as 3x2, so the mosaic never shows an empty cell.
+const thumbs = series.sketches.slice(0, thumbsFor(series.sketches.length));
+const mosaicCols = thumbs.length === 1 ? 1 : thumbs.length > 4 ? 3 : 2;
+
+function thumbsFor(n: number) {
+  return n >= 6 ? 6 : n === 5 ? 4 : n;
+}
 ---
 
 <a href={url} class="series-card-link">
   <article class="series-card">
-    <div class="series-mosaic" style={`--cols:${mosaicCols}`}>
+    <div class="series-mosaic" style={`--cols:${mosaicCols}`} data-count={thumbs.length}>
       {thumbs.map((s) => (
         <img src={s.mediaUrl} alt="" loading="lazy" decoding="async" onload="this.classList.add('loaded')" />
       ))}
