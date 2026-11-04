@@ -34,6 +34,23 @@ jobs:
       - name: Pin sketches to the latest commit
         run: echo "SKETCHES_REF=$(git ls-remote https://github.com/amycardoso/creative-coding refs/heads/main | cut -f1)" >> "$GITHUB_ENV"
 
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      # Encoded media is keyed by each source file's blob SHA, so a restored
+      # cache means only new or changed GIFs get encoded.
+      - name: Restore encoded media
+        uses: actions/cache@v4
+        with:
+          path: public/media
+          key: media-${{ env.SKETCHES_REF }}
+          restore-keys: media-
+
+      - name: Encode GIFs as video and thumbnails
+        run: npm run media
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
       - run: npm run build
 
       - uses: actions/upload-pages-artifact@v3

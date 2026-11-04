@@ -1,5 +1,6 @@
 ---
 import type { Sketch } from "../data/fetch-sketches";
+import Media from "./Media.astro";
 
 interface Props {
   sketch: Sketch;
@@ -15,15 +16,7 @@ const context = sketch.seriesTitle
 <a href={detailUrl} class="card-link" data-slug={sketch.slug}>
   <article class="card">
     <div class="card-media" style={`aspect-ratio:${sketch.width}/${sketch.height}`}>
-      <img
-        src={sketch.mediaUrl}
-        alt={sketch.title}
-        width={sketch.width}
-        height={sketch.height}
-        loading="lazy"
-        decoding="async"
-        onload="this.classList.add('loaded')"
-      />
+      <Media media={sketch.thumb} alt={sketch.title} width={sketch.width} height={sketch.height} />
     </div>
     <div class="card-body">
       <h2 class="card-title">{sketch.title}</h2>

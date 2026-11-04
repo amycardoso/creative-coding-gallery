@@ -23,7 +23,7 @@ const allSketches = sketchList.map((s) => ({
   category: s.category,
   tags: s.tags,
   tech: s.tech,
-  mediaUrl: s.mediaUrl,
+  thumb: s.thumb,
   width: s.width,
   height: s.height,
   context: s.seriesTitle ? `${s.seriesTitle} ${s.seriesIndex}/${s.seriesCount}` : s.dateLabel,
@@ -301,7 +301,9 @@ const base = import.meta.env.BASE_URL;
     return `<a href="${base}${encodeURI(s.slug)}/" class="card-link" data-slug="${esc(s.slug)}">
       <article class="card">
         <div class="card-media" style="aspect-ratio:${s.width}/${s.height}">
-          <img src="${esc(s.mediaUrl)}" alt="${esc(s.title)}" width="${s.width}" height="${s.height}" loading="lazy" decoding="async" onload="this.classList.add('loaded')" />
+          ${s.thumb.video
+            ? `<video class="loaded" data-src="${esc(s.thumb.src)}"${s.thumb.poster ? ` poster="${esc(s.thumb.poster)}"` : ""} width="${s.width}" height="${s.height}" aria-label="${esc(s.title)}" data-autoplay muted loop playsinline disablepictureinpicture preload="none"></video>`
+            : `<img src="${esc(s.thumb.src)}" alt="${esc(s.title)}" width="${s.width}" height="${s.height}" loading="lazy" decoding="async" onload="this.classList.add('loaded')" />`}
         </div>
         <div class="card-body">
           <h2 class="card-title">${esc(s.title)}</h2>

@@ -1,5 +1,6 @@
 ---
 import type { Series } from "../data/fetch-sketches";
+import Media from "./Media.astro";
 
 interface Props {
   series: Series;
@@ -21,7 +22,7 @@ function thumbsFor(n: number) {
   <article class="series-card">
     <div class="series-mosaic" style={`--cols:${mosaicCols}`} data-count={thumbs.length}>
       {thumbs.map((s) => (
-        <img src={s.mediaUrl} alt="" loading="lazy" decoding="async" onload="this.classList.add('loaded')" />
+        <Media media={s.thumb} alt="" />
       ))}
     </div>
     <div class="series-body">
