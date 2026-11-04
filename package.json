@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "media": "node scripts/build-media.mjs",
     "preview": "astro preview"
   },
   "dependencies": {

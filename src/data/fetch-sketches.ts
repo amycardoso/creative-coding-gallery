@@ -1,5 +1,6 @@
 import { z } from "astro/zod";
 import probe from "probe-image-size";
+import { existsSync, readFileSync } from "node:fs";
 
 const REPO_OWNER = "amycardoso";
 const REPO_NAME = "creative-coding";
@@ -11,6 +12,26 @@ const RAW_REF = process.env.SKETCHES_REF || BRANCH;
 
 const rawUrl = (path: string) =>
   `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${RAW_REF}/${path}`;
+
+// Web versions of the media (small MP4/WebP for cards, MP4 for the detail page),
+// written by scripts/build-media.mjs and served from this site. A sketch missing
+// here falls back to its original file on raw.githubusercontent.
+type MediaEntry = {
+  width: number;
+  height: number;
+  kind: "video" | "image";
+  thumb: string;
+  full: string | null;
+  poster: string | null;
+};
+const MEDIA_INDEX = "public/media/index.json";
+const mediaIndex: Record<string, MediaEntry> = existsSync(MEDIA_INDEX)
+  ? JSON.parse(readFileSync(MEDIA_INDEX, "utf8"))
+  : {};
+const localMedia = (slug: string, file: string) =>
+  `${import.meta.env.BASE_URL}media/${slug}/${file}`;
+
+export type MediaSource = { src: string; video: boolean; poster?: string };
 
 export const CATEGORIES = [
   "space",
@@ -45,6 +66,12 @@ const ManifestSchema = z.object({
 
 export type Sketch = z.infer<typeof SketchSchema> & {
   mediaUrl: string;
+  /** Light version for cards and mosaics. */
+  thumb: MediaSource;
+  /** Detail page version. */
+  full: MediaSource;
+  /** A still frame, absolute path on this site (for og:image), when one exists. */
+  posterUrl?: string;
   sourceUrl: string;
   width: number;
   height: number;
@@ -96,15 +123,26 @@ async function load() {
   const sketches = await Promise.all(
     manifest.sketches.map(async (sketch): Promise<Sketch> => {
       const mediaUrl = rawUrl(sketch.media);
-      let width = 800;
-      let height = 600;
-      try {
-        const result = await probe(mediaUrl);
-        width = result.width;
-        height = result.height;
-      } catch {
-        // fallback to defaults
+      const local = mediaIndex[sketch.slug];
+      let width = local?.width ?? 800;
+      let height = local?.height ?? 600;
+      if (!local) {
+        try {
+          const result = await probe(mediaUrl);
+          width = result.width;
+          height = result.height;
+        } catch {
+          // fallback to defaults
+        }
       }
+      const poster = local?.poster ? localMedia(sketch.slug, local.poster) : undefined;
+      const original: MediaSource = { src: mediaUrl, video: false };
+      const thumb: MediaSource = local
+        ? { src: localMedia(sketch.slug, local.thumb), video: local.kind === "video", poster }
+        : original;
+      const full: MediaSource = local?.full
+        ? { src: localMedia(sketch.slug, local.full), video: true, poster }
+        : original;
       const members = sketch.series ? seriesMembers.get(sketch.series)! : null;
       return {
         ...sketch,
@@ -112,6 +150,9 @@ async function load() {
         // repeats either one is noise.
         tags: sketch.tags.filter((t) => t !== sketch.category && t !== sketch.series),
         mediaUrl,
+        thumb,
+        full,
+        posterUrl: poster,
         // The sketch folder is wherever its media lives (sketches/<category>/<slug>/...).
         sourceUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/${BRANCH}/${sketch.media.split("/").slice(0, -1).join("/")}`,
         width,

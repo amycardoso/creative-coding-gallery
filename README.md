@@ -6,7 +6,7 @@ A static gallery site showcasing generative art and creative coding experiments.
 
 ## How it works
 
-The gallery fetches sketch metadata from a [`manifest.json`](https://github.com/amycardoso/creative-coding/blob/main/manifest.json) in the [creative-coding](https://github.com/amycardoso/creative-coding) source repo at build time. Media files (GIFs, PNGs) are served directly from GitHub's raw content CDN.
+The gallery fetches sketch metadata from a [`manifest.json`](https://github.com/amycardoso/creative-coding/blob/main/manifest.json) in the [creative-coding](https://github.com/amycardoso/creative-coding) source repo at build time. Before the build, `npm run media` (`scripts/build-media.mjs`, needs ffmpeg) downloads each sketch's media and turns it into web versions served from this site: GIFs become a small looping MP4 for cards, a full-size MP4 for the detail page and a WebP poster frame; PNGs get a WebP thumbnail. Results land in `public/media/` (gitignored, cached in CI by source file SHA, so only new or changed GIFs are encoded). Without that folder the gallery falls back to the original files on raw.githubusercontent.
 
 ```
 creative-coding repo                    creative-coding-gallery repo
@@ -34,6 +34,7 @@ Sketches that belong to a series carry a `"series": "<slug>"` field. The gallery
 
 ```bash
 npm install
+npm run media   # optional, needs ffmpeg
 npm run dev
 ```
 

@@ -26,7 +26,7 @@ import "../styles/global.css";
     <meta name="description" content={description} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    {ogImage && <meta property="og:image" content={ogImage} />}
+    {ogImage && <meta property="og:image" content={new URL(ogImage, Astro.site)} />}
     <title>{title}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -37,5 +37,44 @@ import "../styles/global.css";
   </head>
   <body>
     <slot />
+    <script>
+      // Video stand-ins for GIFs: fetch a card's video only when it nears the
+      // viewport, play it while visible, pause it when it scrolls away. With
+      // reduced motion the poster frame stays and nothing plays.
+      const still = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const { target, isIntersecting } of entries) {
+            const v = target as HTMLVideoElement;
+            if (isIntersecting) {
+              if (v.dataset.src) {
+                v.src = v.dataset.src;
+                delete v.dataset.src;
+              }
+              if (!still.matches) v.play().catch(() => {});
+            } else {
+              v.pause();
+            }
+          }
+        },
+        { rootMargin: "200px 0px" },
+      );
+      const watch = (root: ParentNode) =>
+        root.querySelectorAll<HTMLVideoElement>("video[data-autoplay]").forEach((v) => io.observe(v));
+      watch(document);
+      // Cards added later (infinite scroll, filters) need watching too.
+      new MutationObserver((records) => {
+        for (const r of records)
+          r.addedNodes.forEach((n) => {
+            if (n instanceof HTMLVideoElement && n.dataset.autoplay !== undefined) io.observe(n);
+            else if (n instanceof Element) watch(n);
+          });
+      }).observe(document.body, { childList: true, subtree: true });
+      if (still.matches)
+        document.querySelectorAll<HTMLVideoElement>("video[autoplay]").forEach((v) => {
+          v.removeAttribute("autoplay");
+          v.pause();
+        });
+    </script>
   </body>
 </html>

@@ -1,0 +1,46 @@
+---
+import type { MediaSource } from "../data/fetch-sketches";
+
+interface Props {
+  media: MediaSource;
+  alt: string;
+  width?: number;
+  height?: number;
+  /** Load right away (detail page) instead of when it scrolls into view. */
+  eager?: boolean;
+}
+
+const { media, alt, width, height, eager = false } = Astro.props;
+---
+
+{media.video ? (
+  // Videos stand in for GIFs: muted, looping, inline. Lazy ones get their src
+  // from the observer in BaseLayout once they are near the viewport.
+  <video
+    class="loaded"
+    src={eager ? media.src : undefined}
+    data-src={eager ? undefined : media.src}
+    poster={media.poster}
+    width={width}
+    height={height}
+    aria-label={alt || undefined}
+    aria-hidden={alt ? undefined : "true"}
+    autoplay={eager}
+    data-autoplay
+    muted
+    loop
+    playsinline
+    disablepictureinpicture
+    preload={eager ? "auto" : "none"}
+  />
+) : (
+  <img
+    src={media.src}
+    alt={alt}
+    width={width}
+    height={height}
+    loading={eager ? "eager" : "lazy"}
+    decoding="async"
+    onload="this.classList.add('loaded')"
+  />
+)}
