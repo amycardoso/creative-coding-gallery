@@ -1,6 +1,6 @@
 # Creative Coding Gallery
 
-A static gallery site showcasing generative art and creative coding experiments. Built with [Astro](https://astro.build), deployed on GitHub Pages.
+A static gallery site for generative art and creative coding: same rules, never the same image. Built with [Astro](https://astro.build), deployed on GitHub Pages.
 
 **Live:** [amycardoso.github.io/creative-coding-gallery](https://amycardoso.github.io/creative-coding-gallery/)
 
@@ -13,8 +13,9 @@ creative-coding repo                    creative-coding-gallery repo
 ┌──────────────────┐                    ┌──────────────────────────┐
 │ Push manifest.json│ ──dispatch──────> │ GitHub Actions triggered  │
 │ or new sketch    │                    │ 1. Fetch manifest.json   │
-└──────────────────┘                    │ 2. Build Astro site      │
-                                        │ 3. Deploy to GH Pages   │
+└──────────────────┘                    │ 2. Encode media (ffmpeg) │
+                                        │ 3. Build Astro site      │
+                                        │ 4. Deploy to GH Pages    │
                                         └──────────────────────────┘
 ```
 
@@ -40,7 +41,8 @@ npm run dev
 
 ## Tech stack
 
-- **Astro 5** — static site generation, zero client-side JS
+- **Astro 5** — static site generation, with a small client script for filters, infinite scroll and lazy video
+- **ffmpeg** — build-time GIF → MP4/WebP conversion (`scripts/build-media.mjs`)
 - **Zod** — build-time validation of sketch metadata
 - **GitHub Actions** — CI/CD with automatic deploys on push, dispatch, and weekly schedule
 
