@@ -70,13 +70,21 @@ const seeded = sketch.seed !== undefined;
       history.replaceState(null, "", url);
     };
 
-    // Show the sketch once it has drawn a little; until then the recording plays.
+    // Reveal the sketch once p5 has drawn its first frame (after preload and
+    // setup); until then the recording plays. Gives up waiting after 15 s.
+    const reveal = () => {
+      root.classList.add("is-running");
+      video?.pause();
+    };
     frame.addEventListener("load", () => {
       if (frame.getAttribute("src") === "about:blank") return;
-      settle = setTimeout(() => {
-        root.classList.add("is-running");
-        video?.pause();
-      }, 250);
+      const started = Date.now();
+      const check = () => {
+        const drawn = (frame.contentWindow as (Window & { frameCount?: number }) | null)?.frameCount;
+        if ((typeof drawn === "number" && drawn > 0) || Date.now() - started > 15000) reveal();
+        else settle = setTimeout(check, 100);
+      };
+      check();
     });
 
     regenerate?.addEventListener("click", () => {
