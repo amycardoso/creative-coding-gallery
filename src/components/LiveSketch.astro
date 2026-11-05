@@ -71,7 +71,7 @@ const seeded = sketch.seed !== undefined;
     };
 
     // Reveal the sketch once p5 has drawn its first frame (after preload and
-    // setup); until then the recording plays. Gives up waiting after 15 s.
+    // setup); until then the recording plays, even if that never happens.
     const reveal = () => {
       root.classList.add("is-running");
       video?.pause();
@@ -81,8 +81,9 @@ const seeded = sketch.seed !== undefined;
       const started = Date.now();
       const check = () => {
         const drawn = (frame.contentWindow as (Window & { frameCount?: number }) | null)?.frameCount;
-        if ((typeof drawn === "number" && drawn > 0) || Date.now() - started > 15000) reveal();
-        else settle = setTimeout(check, 100);
+        if (typeof drawn === "number" && drawn > 0) reveal();
+        // Slow setups (or a failed preload) keep the recording; check less often.
+        else settle = setTimeout(check, Date.now() - started > 15000 ? 1000 : 100);
       };
       check();
     });
