@@ -1,7 +1,9 @@
 // Turns the source repo's GIFs/PNGs into web-friendly media before `astro build`.
 //
 // For every sketch in the manifest it writes public/media/<slug>/:
-//   GIF/MP4 -> thumb.mp4 (small, for cards), full.mp4 (detail page), poster.webp
+//   GIF/MP4 -> thumb.mp4 (small, for cards), full.mp4 (detail page), poster.webp,
+//              preview.gif (small, for places that only take images, like the
+//              GitHub profile README)
 //   PNG     -> thumb.webp
 // and records the result in public/media/index.json, which fetch-sketches.ts
 // reads. A GIF whose MP4 comes out bigger than the GIF keeps the GIF; an MP4
@@ -76,16 +78,28 @@ async function processVideo(src, dir, ext) {
   }
   await ffmpeg(["-i", src, ...h264(null, 24), full]);
   await ffmpeg(["-i", src, "-frames:v", "1", "-c:v", "libwebp", "-quality", "80", join(dir, "poster.webp")]);
+  // 200 px tall (the profile shows it at 100), 12 fps, first 4 seconds.
+  await ffmpeg([
+    "-t", "4", "-i", src, "-filter_complex",
+    "fps=12,scale=-2:200:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4",
+    "-loop", "0", join(dir, "preview.gif"),
+  ]);
   const keepSource = (await size(full)) >= (await size(src));
   if (keepSource && ext === "mp4") await copyFile(src, full);
   else if (keepSource) await rm(full);
   const servesFull = !keepSource || ext === "mp4";
-  return { kind: "video", thumb: "thumb.mp4", full: servesFull ? "full.mp4" : null, poster: "poster.webp" };
+  return {
+    kind: "video",
+    thumb: "thumb.mp4",
+    full: servesFull ? "full.mp4" : null,
+    poster: "poster.webp",
+    preview: "preview.gif",
+  };
 }
 
 async function processPng(src, dir) {
   await ffmpeg(["-i", src, "-vf", "scale='min(800,iw)':-2", "-c:v", "libwebp", "-quality", "82", join(dir, "thumb.webp")]);
-  return { kind: "image", thumb: "thumb.webp", full: null, poster: null };
+  return { kind: "image", thumb: "thumb.webp", full: null, poster: null, preview: "thumb.webp" };
 }
 
 async function build(sketch, sha) {
@@ -106,8 +120,10 @@ async function build(sketch, sha) {
   }
 }
 
+// An entry from before previews existed has no `preview` and is encoded again.
 const filesExist = (slug, e) =>
-  [e.thumb, e.full, e.poster].filter(Boolean).every((f) => existsSync(join(OUT, slug, f)));
+  Boolean(e.preview) &&
+  [e.thumb, e.full, e.poster, e.preview].filter(Boolean).every((f) => existsSync(join(OUT, slug, f)));
 
 async function main() {
   const manifest = await getJson(raw("manifest.json"));
