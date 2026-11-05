@@ -53,8 +53,14 @@ const seeded = sketch.seed !== undefined;
     const fromPage = new URLSearchParams(location.search).get("seed");
     let seed = base !== undefined && fromPage && /^-?\d+$/.test(fromPage) ? fromPage : base;
 
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let settle: ReturnType<typeof setTimeout> | undefined;
+
     const run = () => {
+      clearTimeout(settle);
       root.classList.remove("is-running");
+      // The recording shows again while the new sketch loads.
+      if (!still.matches) video?.play().catch(() => {});
       frame.src = seed !== undefined ? `${src}?seed=${seed}` : src;
       if (label && seed !== undefined) label.textContent = seed;
       if (original) original.hidden = seed === base;
@@ -67,7 +73,7 @@ const seeded = sketch.seed !== undefined;
     // Show the sketch once it has drawn a little; until then the recording plays.
     frame.addEventListener("load", () => {
       if (frame.getAttribute("src") === "about:blank") return;
-      setTimeout(() => {
+      settle = setTimeout(() => {
         root.classList.add("is-running");
         video?.pause();
       }, 250);
@@ -88,6 +94,7 @@ const seeded = sketch.seed !== undefined;
       mode.textContent = recording ? "Live" : "Recording";
       for (const b of [regenerate, original]) if (b) b.disabled = recording;
       if (recording) {
+        clearTimeout(settle);
         root.classList.remove("is-running");
         frame.src = "about:blank";
         video?.play().catch(() => {});

@@ -87,6 +87,7 @@ async function main() {
 
   let next = 0;
   let failed = 0;
+  const broken = new Set();
   await Promise.all(
     Array.from({ length: CONCURRENCY }, async () => {
       while (next < jobs.length) {
@@ -101,13 +102,17 @@ async function main() {
           }
         } catch (err) {
           failed++;
+          broken.add(sketch.slug);
           console.warn(`  ${sketch.slug}: ${err.message}`);
         }
       }
     }),
   );
 
-  const slugs = new Set(jobs.map((j) => j.sketch.slug));
+  // A sketch missing a file would run broken: drop it so its page keeps the recording.
+  for (const slug of broken) await rm(join(OUT, slug), { recursive: true, force: true });
+
+  const slugs = new Set(jobs.map((j) => j.sketch.slug).filter((s) => !broken.has(s)));
   console.log(`live: ${slugs.size} sketches, ${jobs.length - failed} files${failed ? `, ${failed} failed` : ""}`);
 }
 

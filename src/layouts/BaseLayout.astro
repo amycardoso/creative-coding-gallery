@@ -51,7 +51,8 @@ import "../styles/global.css";
                 v.src = v.dataset.src;
                 delete v.dataset.src;
               }
-              if (!still.matches) v.play().catch(() => {});
+              // A recording under a running live sketch stays paused.
+              if (!still.matches && !v.closest(".live.is-running")) v.play().catch(() => {});
             } else {
               v.pause();
             }

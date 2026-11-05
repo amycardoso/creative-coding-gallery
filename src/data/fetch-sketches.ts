@@ -159,7 +159,7 @@ async function load() {
         thumb,
         full,
         posterUrl: poster,
-        liveUrl: existsSync(`public/live/${sketch.slug}/index.html`)
+        liveUrl: sketch.live !== false && existsSync(`public/live/${sketch.slug}/index.html`)
           ? `${import.meta.env.BASE_URL}live/${sketch.slug}/`
           : undefined,
         // The sketch folder is wherever its media lives (sketches/<category>/<slug>/...).
