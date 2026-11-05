@@ -1,17 +1,18 @@
 // Turns the source repo's GIFs/PNGs into web-friendly media before `astro build`.
 //
 // For every sketch in the manifest it writes public/media/<slug>/:
-//   GIF -> thumb.mp4 (small, for cards), full.mp4 (detail page), poster.webp
-//   PNG -> thumb.webp
+//   GIF/MP4 -> thumb.mp4 (small, for cards), full.mp4 (detail page), poster.webp
+//   PNG     -> thumb.webp
 // and records the result in public/media/index.json, which fetch-sketches.ts
-// reads. A GIF whose MP4 comes out bigger than the GIF keeps the GIF.
+// reads. A GIF whose MP4 comes out bigger than the GIF keeps the GIF; an MP4
+// source that does not shrink is served as it is.
 //
 // Outputs are keyed by the source file's git blob SHA, so with public/media
 // restored from the CI cache only new or changed files are downloaded and
 // encoded. Needs ffmpeg/ffprobe on PATH.
 
 import { execFile } from "node:child_process";
-import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -66,7 +67,7 @@ const h264 = (width, crf) => [
   "-c:v", "libx264", "-preset", "slow", "-crf", String(crf),
 ];
 
-async function processGif(src, dir) {
+async function processVideo(src, dir, ext) {
   const thumb = join(dir, "thumb.mp4");
   const full = join(dir, "full.mp4");
   await ffmpeg(["-i", src, ...h264(THUMB_WIDTH, 28), thumb]);
@@ -75,9 +76,11 @@ async function processGif(src, dir) {
   }
   await ffmpeg(["-i", src, ...h264(null, 24), full]);
   await ffmpeg(["-i", src, "-frames:v", "1", "-c:v", "libwebp", "-quality", "80", join(dir, "poster.webp")]);
-  const keepGif = (await size(full)) >= (await size(src));
-  if (keepGif) await rm(full);
-  return { kind: "video", thumb: "thumb.mp4", full: keepGif ? null : "full.mp4", poster: "poster.webp" };
+  const keepSource = (await size(full)) >= (await size(src));
+  if (keepSource && ext === "mp4") await copyFile(src, full);
+  else if (keepSource) await rm(full);
+  const servesFull = !keepSource || ext === "mp4";
+  return { kind: "video", thumb: "thumb.mp4", full: servesFull ? "full.mp4" : null, poster: "poster.webp" };
 }
 
 async function processPng(src, dir) {
@@ -87,7 +90,7 @@ async function processPng(src, dir) {
 
 async function build(sketch, sha) {
   const ext = sketch.media.split(".").pop().toLowerCase();
-  if (ext !== "gif" && ext !== "png") return null;
+  if (!["gif", "mp4", "png"].includes(ext)) return null;
   const dir = join(OUT, sketch.slug);
   await rm(dir, { recursive: true, force: true });
   await mkdir(dir, { recursive: true });
@@ -96,7 +99,7 @@ async function build(sketch, sha) {
   if (!res.ok) throw new Error(`${sketch.media}: ${res.status}`);
   await writeFile(src, Buffer.from(await res.arrayBuffer()));
   try {
-    const out = ext === "gif" ? await processGif(src, dir) : await processPng(src, dir);
+    const out = ext === "png" ? await processPng(src, dir) : await processVideo(src, dir, ext);
     return { sha, ...(await dimensions(src)), ...out };
   } finally {
     await rm(src, { force: true });

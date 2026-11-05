@@ -5,6 +5,7 @@ import Footer from "../components/Footer.astro";
 import { fetchSketches, fetchSeries } from "../data/fetch-sketches";
 import type { Sketch } from "../data/fetch-sketches";
 import Media from "../components/Media.astro";
+import LiveSketch from "../components/LiveSketch.astro";
 
 export async function getStaticPaths() {
   const sketches = await fetchSketches();
@@ -44,7 +45,11 @@ const base = import.meta.env.BASE_URL;
 
       <div class="detail-layout">
         <div class="detail-media">
-          <Media media={sketch.full} alt={sketch.title} width={sketch.width} height={sketch.height} eager />
+          {sketch.liveUrl ? (
+            <LiveSketch sketch={sketch} />
+          ) : (
+            <Media media={sketch.full} alt={sketch.title} width={sketch.width} height={sketch.height} eager />
+          )}
         </div>
 
         <div class="detail-info">

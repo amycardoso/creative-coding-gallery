@@ -51,6 +51,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
+      - name: Copy the sketches to run live
+        run: npm run live
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
       - run: npm run build
 
       - uses: actions/upload-pages-artifact@v3

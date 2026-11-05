@@ -49,6 +49,10 @@ const SketchSchema = z.object({
   category: z.enum(CATEGORIES),
   series: z.string().optional(),
   media: z.string(),
+  /** Default seed: what the live sketch shows first (and what the recording shows). */
+  seed: z.number().optional(),
+  /** false keeps the detail page on the recording (e.g. sketches that need live data). */
+  live: z.boolean().optional(),
   tags: z.array(z.string()),
   tech: z.array(z.string()),
 });
@@ -73,6 +77,8 @@ export type Sketch = z.infer<typeof SketchSchema> & {
   /** A still frame, absolute path on this site (for og:image), when one exists. */
   posterUrl?: string;
   sourceUrl: string;
+  /** The sketch itself, copied by scripts/build-live.mjs, when it can run here. */
+  liveUrl?: string;
   width: number;
   height: number;
   dateLabel: string;
@@ -136,7 +142,7 @@ async function load() {
         }
       }
       const poster = local?.poster ? localMedia(sketch.slug, local.poster) : undefined;
-      const original: MediaSource = { src: mediaUrl, video: false };
+      const original: MediaSource = { src: mediaUrl, video: /\.mp4$/i.test(sketch.media) };
       const thumb: MediaSource = local
         ? { src: localMedia(sketch.slug, local.thumb), video: local.kind === "video", poster }
         : original;
@@ -153,6 +159,9 @@ async function load() {
         thumb,
         full,
         posterUrl: poster,
+        liveUrl: existsSync(`public/live/${sketch.slug}/index.html`)
+          ? `${import.meta.env.BASE_URL}live/${sketch.slug}/`
+          : undefined,
         // The sketch folder is wherever its media lives (sketches/<category>/<slug>/...).
         sourceUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/tree/${BRANCH}/${sketch.media.split("/").slice(0, -1).join("/")}`,
         width,
