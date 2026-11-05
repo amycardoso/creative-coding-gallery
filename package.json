@@ -7,6 +7,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "media": "node scripts/build-media.mjs",
+    "live": "node scripts/build-live.mjs",
     "preview": "astro preview"
   },
   "dependencies": {

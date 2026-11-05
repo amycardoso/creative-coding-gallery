@@ -1,0 +1,116 @@
+---
+import type { Sketch } from "../data/fetch-sketches";
+import Media from "./Media.astro";
+
+interface Props {
+  sketch: Sketch;
+}
+
+// Runs the sketch itself in an iframe, starting from its default seed (or the
+// page's ?seed=N). The recording plays underneath until the sketch has loaded,
+// and stays one click away. Regenerate picks a new seed and puts it in the
+// page URL so a variation can be shared; Original goes back to the default.
+
+const { sketch } = Astro.props;
+const ratio = (sketch.width / sketch.height).toFixed(4);
+const seeded = sketch.seed !== undefined;
+---
+
+<figure
+  class="live"
+  data-live
+  data-src={sketch.liveUrl}
+  data-seed={seeded ? String(sketch.seed) : undefined}
+  style={`--ratio:${ratio}`}
+>
+  <div class="live-frame">
+    <Media media={sketch.full} alt={sketch.title} width={sketch.width} height={sketch.height} eager />
+    <iframe title={`${sketch.title}, running live`} loading="eager" allow="fullscreen"></iframe>
+  </div>
+  <figcaption class="live-controls">
+    {seeded && (
+      <>
+        <span class="live-seed">Seed <span data-seed-label>{sketch.seed}</span></span>
+        <button type="button" class="live-btn" data-regenerate>Regenerate</button>
+        <button type="button" class="live-btn" data-original hidden>Original</button>
+      </>
+    )}
+    <button type="button" class="live-btn live-btn--quiet" data-mode aria-pressed="false">Recording</button>
+  </figcaption>
+</figure>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>("[data-live]")) {
+    const frame = root.querySelector("iframe")!;
+    const video = root.querySelector("video");
+    const label = root.querySelector<HTMLElement>("[data-seed-label]");
+    const regenerate = root.querySelector<HTMLButtonElement>("[data-regenerate]");
+    const original = root.querySelector<HTMLButtonElement>("[data-original]");
+    const mode = root.querySelector<HTMLButtonElement>("[data-mode]")!;
+    const src = root.dataset.src!;
+    const base = root.dataset.seed;
+
+    const fromPage = new URLSearchParams(location.search).get("seed");
+    let seed = base !== undefined && fromPage && /^-?\d+$/.test(fromPage) ? fromPage : base;
+
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let settle: ReturnType<typeof setTimeout> | undefined;
+
+    const run = () => {
+      clearTimeout(settle);
+      root.classList.remove("is-running");
+      // The recording shows again while the new sketch loads.
+      if (!still.matches) video?.play().catch(() => {});
+      frame.src = seed !== undefined ? `${src}?seed=${seed}` : src;
+      if (label && seed !== undefined) label.textContent = seed;
+      if (original) original.hidden = seed === base;
+      const url = new URL(location.href);
+      if (seed === undefined || seed === base) url.searchParams.delete("seed");
+      else url.searchParams.set("seed", seed);
+      history.replaceState(null, "", url);
+    };
+
+    // Reveal the sketch once p5 has drawn its first frame (after preload and
+    // setup); until then the recording plays. Gives up waiting after 15 s.
+    const reveal = () => {
+      root.classList.add("is-running");
+      video?.pause();
+    };
+    frame.addEventListener("load", () => {
+      if (frame.getAttribute("src") === "about:blank") return;
+      const started = Date.now();
+      const check = () => {
+        const drawn = (frame.contentWindow as (Window & { frameCount?: number }) | null)?.frameCount;
+        if ((typeof drawn === "number" && drawn > 0) || Date.now() - started > 15000) reveal();
+        else settle = setTimeout(check, 100);
+      };
+      check();
+    });
+
+    regenerate?.addEventListener("click", () => {
+      seed = String(Math.floor(Math.random() * 1e6));
+      run();
+    });
+    original?.addEventListener("click", () => {
+      seed = base;
+      run();
+    });
+    // The recording stops the sketch (no CPU spent on a hidden iframe).
+    mode.addEventListener("click", () => {
+      const recording = root.classList.toggle("is-recording");
+      mode.setAttribute("aria-pressed", String(recording));
+      mode.textContent = recording ? "Live" : "Recording";
+      for (const b of [regenerate, original]) if (b) b.disabled = recording;
+      if (recording) {
+        clearTimeout(settle);
+        root.classList.remove("is-running");
+        frame.src = "about:blank";
+        video?.play().catch(() => {});
+      } else {
+        run();
+      }
+    });
+
+    run();
+  }
+</script>
