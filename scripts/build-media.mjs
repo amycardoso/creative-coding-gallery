@@ -14,7 +14,7 @@
 // encoded. Needs ffmpeg/ffprobe on PATH.
 
 import { execFile } from "node:child_process";
-import { copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { appendFile, copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -169,6 +169,9 @@ async function main() {
     if (!(slug in index)) await rm(join(OUT, slug), { recursive: true, force: true });
   }
   await writeFile(INDEX, JSON.stringify(index, null, 2));
+  // Tells the workflow whether public/media changed and needs a new cache entry.
+  const changed = todo.length + Object.keys(old).filter((slug) => !(slug in index)).length;
+  if (process.env.GITHUB_OUTPUT) await appendFile(process.env.GITHUB_OUTPUT, `encoded=${changed}\n`);
 }
 
 main().catch((err) => {
