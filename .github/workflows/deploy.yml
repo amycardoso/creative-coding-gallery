@@ -37,19 +37,32 @@ jobs:
       - name: Install ffmpeg
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
 
-      # Encoded media is keyed by each source file's blob SHA, so a restored
-      # cache means only new or changed GIFs get encoded.
+      # build-media.mjs decides per piece what is still valid (source blob SHA
+      # plus every output file present), so the cache only has to hand back the
+      # newest public/media. The run-specific key never matches, so restore
+      # always falls back to the most recent media-* entry, and a fresh one is
+      # saved whenever something was encoded. (A fixed key per sketches commit
+      # froze a stale cache: once that key existed it was never saved again,
+      # and every deploy re-encoded all pieces.)
       - name: Restore encoded media
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: public/media
-          key: media-${{ env.SKETCHES_REF }}
+          key: media-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: media-
 
       - name: Encode GIFs as video and thumbnails
+        id: media
         run: npm run media
         env:
           GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Save encoded media
+        if: steps.media.outputs.encoded != '0'
+        uses: actions/cache/save@v4
+        with:
+          path: public/media
+          key: media-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Copy the sketches to run live
         run: npm run live
